@@ -52,7 +52,7 @@ app.layout = dbc.Container([
     [Output('sales-graph', 'figure'),
      Output('filtered-table', 'data'),
      Output('filtered-table', 'columns'),
-     Output('debug-output', 'children')],
+     Output('debug-box', 'children')],
     Input('run-query', 'n_clicks'),
     State('user-query', 'value')
 )
@@ -60,58 +60,44 @@ def handle_query(n, user_query):
     if not user_query:
         return dash.no_update, dash.no_update, dash.no_update, ""
 
-    print("User Query:", user_query)
-
-    # Step 1: Interpret
     user_query = user_query.lower().strip()
-    filter_spec = interpret_query(user_query)
-    print(" Filter Spec:", filter_spec)
+    debug_info = f"User Query:\n{user_query}\n"
 
-    # Step 2: Generate Code
-    filter_code = build_code_from_filter(filter_spec)
-    print("Code to Execute:\n", filter_code)
-
-    # Step 3: Apply Filter Code
-    local_vars = {'df': df.copy(), 'pd': pd}
     try:
+        # Step 1: Interpret
+        filter_spec = interpret_query(user_query)
+        debug_info += f"\nModel Output:\n{filter_spec}"
+
+        # Step 2: Generate Code
+        filter_code = build_code_from_filter(filter_spec)
+        debug_info += f"\n\nApplied Filter Code:\n{filter_code}"
+
+        local_vars = {'df': df.copy(), 'pd': pd}
         exec(filter_code, {}, local_vars)
         filtered_df = local_vars.get('filtered_df', pd.DataFrame())
+
+        debug_info += f"\n\nFiltered Preview:\n{filtered_df.head()}"
+
     except Exception as e:
-        print(" Code Execution Error:", e)
+        debug_info += f"\n\n🚨 Error:\n{e}"
         filtered_df = pd.DataFrame()
 
-    print("Filtered Preview:\n", filtered_df.head())
-    os.makedirs("temp", exist_ok=True)
-    filtered_df.to_csv("temp/filtered_output.csv", index=False)
+    # Default table data
+    data, columns = [], []
 
-    # Step 4: Graph Generation
     if not filtered_df.empty and 'order date' in filtered_df.columns and 'sales' in filtered_df.columns:
         grouped_df = (
             filtered_df.sort_values('order date')
-                    .groupby('order date', as_index=False)
-                    .agg({'sales': 'sum'})
+                       .groupby('order date', as_index=False)
+                       .agg({'sales': 'sum'})
         )
         fig = px.line(grouped_df, x='order date', y='sales', title='Sales Over Time')
+        data = filtered_df.to_dict('records')
+        columns = [{'name': col, 'id': col} for col in filtered_df.columns]
     else:
         fig = px.bar(title="No data or invalid filter.")
 
-
-        # Step 5: Table
-        data = filtered_df.to_dict('records')
-        columns = [{'name': col, 'id': col} for col in filtered_df.columns]
-
-    # Debug Output
-    debug_info = f"""User Query:
-                {user_query}
-
-                Model Output:
-                {filter_spec}
-
-                Applied Filter Code:
-                {filter_code}"""
-
     return fig, data, columns, debug_info
-git 
 
 if __name__ == '__main__':
     print("http://127.0.0.1:8050/")
