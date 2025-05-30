@@ -85,19 +85,20 @@ def handle_query(n, user_query):
     filtered_df.to_csv("temp/filtered_output.csv", index=False)
 
     # Step 4: Graph Generation
-    if not filtered_df.empty and 'Order Date' in filtered_df.columns and 'Sales' in filtered_df.columns:
+    if not filtered_df.empty and 'order date' in filtered_df.columns and 'sales' in filtered_df.columns:
         grouped_df = (
-            filtered_df.sort_values('Order Date')
-                       .groupby('Order Date', as_index=False)
-                       .agg({'Sales': 'sum'})
+            filtered_df.sort_values('order date')
+                    .groupby('order date', as_index=False)
+                    .agg({'sales': 'sum'})
         )
-        fig = px.line(grouped_df, x='Order Date', y='Sales', title='Sales Over Time')
+        fig = px.line(grouped_df, x='order date', y='sales', title='Sales Over Time')
     else:
         fig = px.bar(title="No data or invalid filter.")
 
-    # Step 5: Table
-    data = filtered_df.to_dict('records')
-    columns = [{'name': col, 'id': col} for col in filtered_df.columns]
+
+        # Step 5: Table
+        data = filtered_df.to_dict('records')
+        columns = [{'name': col, 'id': col} for col in filtered_df.columns]
 
     # Debug Output
     debug_info = f"""User Query:
