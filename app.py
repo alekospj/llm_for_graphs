@@ -11,8 +11,13 @@ from interpreter import get_interpreter
 
 # Load and prepare data
 df = pd.read_csv('data/train.csv')
-df['Order Date'] = pd.to_datetime(df['Order Date'], dayfirst=True, errors='coerce')
-df['Ship Date'] = pd.to_datetime(df['Ship Date'], dayfirst=True, errors='coerce')
+df.columns = df.columns.str.lower()  # lowercase column names to avoid case sensitivity issues
+
+df['order date'] = pd.to_datetime(df['order date'], dayfirst=True, errors='coerce')
+df['ship date'] = pd.to_datetime(df['ship date'], dayfirst=True, errors='coerce')
+
+# Convert all string elements in the DataFrame to lowercase
+df = df.applymap(lambda x: x.lower() if isinstance(x, str) else x)
 
 # Dash App
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
@@ -58,12 +63,13 @@ def handle_query(n, user_query):
     print("User Query:", user_query)
 
     # Step 1: Interpret
+    user_query = user_query.lower().strip()
     filter_spec = interpret_query(user_query)
     print(" Filter Spec:", filter_spec)
 
     # Step 2: Generate Code
     filter_code = build_code_from_filter(filter_spec)
-    print("🛠 Code to Execute:\n", filter_code)
+    print("Code to Execute:\n", filter_code)
 
     # Step 3: Apply Filter Code
     local_vars = {'df': df.copy(), 'pd': pd}
@@ -104,7 +110,7 @@ def handle_query(n, user_query):
                 {filter_code}"""
 
     return fig, data, columns, debug_info
-
+git 
 
 if __name__ == '__main__':
     print("http://127.0.0.1:8050/")
