@@ -19,7 +19,7 @@ df['Ship Date'] = pd.to_datetime(df['Ship Date'], dayfirst=True, errors='coerce'
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 app.layout = dbc.Container([
-    html.H2("2-Step LLM Sales Explorer"),
+    html.H2("LLM Query to Graph"),
     dbc.Row([
         dbc.Col(dcc.Input(id='user-query', type='text', placeholder='e.g. sales in September 2017', style={'width': '100%'}), width=10),
         dbc.Col(html.Button('Generate', id='run-query', className='btn btn-primary'), width=2)
@@ -63,20 +63,29 @@ def handle_query(n, user_query):
     os.makedirs("temp", exist_ok=True)
     filtered_df.to_csv("temp/filtered_output.csv", index=False)
 
-    # Build graph
-    if not filtered_df.empty and 'Order Date' in filtered_df.columns:
-        fig = px.line(filtered_df, x='Order Date', y='Sales', title='Sales Over Time')
+    # Group & aggregate before graphing
+    if not filtered_df.empty and 'Order Date' in filtered_df.columns and 'Sales' in filtered_df.columns:
+        # Ensure date sorting and grouping
+        grouped_df = (
+            filtered_df.sort_values('Order Date')
+                       .groupby('Order Date', as_index=False)
+                       .agg({'Sales': 'sum'})
+        )
+        fig = px.line(grouped_df, x='Order Date', y='Sales', title='Sales Over Time')
     else:
-        fig = px.bar(title="⚠️ No data or invalid filter.")
+        fig = px.bar(title="No data or invalid filter.")
 
-    # Build table
+    # Table stays ungrouped to show original data
     data = filtered_df.to_dict('records')
     columns = [{'name': col, 'id': col} for col in filtered_df.columns]
 
     return fig, data, columns
 
+
 if __name__ == '__main__':
     from waitress import serve
-    print("Starting production server with Waitress (no thread conflicts)...")
+    print("Starting production server")
     serve(app.server, host="0.0.0.0", port=8050)
 
+
+    # visit here http://127.0.0.1:8050/

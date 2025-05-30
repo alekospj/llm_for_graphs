@@ -7,15 +7,19 @@ This project is a Dash web application that allows users to explore sales data u
 
 ## Project Structure
 
-```
+---
 llm_for_graphs/
-├── app.py                 # Main Dash app
-├── llm_utils.py           # LLM query logic
+├── app.py                 # Dash app with user input → plot logic
+├── interpreter.py         # LLM #1: interprets user query → structured filter (JSON)
+├── code_generator.py      # LLM #2 (templated): generates pandas code from filter
+├── llm_utils.py           # (Optional/legacy) - if you kept single-shot LLM fallback
 ├── data/
-│   └── sales_data.csv     # Superstore sales dataset
-├── requirements.txt       # Python dependencies
-└── README.md              # Project overview
-```
+│   └── sales_data.csv     # Superstore dataset (renamed from train.csv)
+├── temp/
+│   └── filtered_output.csv  # Latest filtered DataFrame (saved for inspection/debug)
+├── requirements.txt       # All required Python packages
+└── README.md              # Instructions, usage, and architecture
+
 
 ---
 
