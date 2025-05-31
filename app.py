@@ -7,19 +7,15 @@ import os
 
 from interpreter import interpret_query
 from code_generator import build_code_from_filter
-from interpreter import get_interpreter
 
 # Load and prepare data
 df = pd.read_csv('data/train.csv')
-df.columns = df.columns.str.lower()  # lowercase column names to avoid case sensitivity issues
-
+df.columns = df.columns.str.lower()  # lowercase column names
 df['order date'] = pd.to_datetime(df['order date'], dayfirst=True, errors='coerce')
 df['ship date'] = pd.to_datetime(df['ship date'], dayfirst=True, errors='coerce')
+df = df.applymap(lambda x: x.lower() if isinstance(x, str) else x)  # lowercase values
 
-# Convert all string elements in the DataFrame to lowercase
-df = df.applymap(lambda x: x.lower() if isinstance(x, str) else x)
-
-# Dash App
+# Dash App setup
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 app.layout = dbc.Container([
@@ -52,7 +48,7 @@ app.layout = dbc.Container([
     [Output('sales-graph', 'figure'),
      Output('filtered-table', 'data'),
      Output('filtered-table', 'columns'),
-     Output('debug-box', 'children')],
+     Output('debug-output', 'children')],
     Input('run-query', 'n_clicks'),
     State('user-query', 'value')
 )
@@ -76,13 +72,12 @@ def handle_query(n, user_query):
         exec(filter_code, {}, local_vars)
         filtered_df = local_vars.get('filtered_df', pd.DataFrame())
 
-        debug_info += f"\n\nFiltered Preview:\n{filtered_df.head()}"
 
     except Exception as e:
-        debug_info += f"\n\n🚨 Error:\n{e}"
+        debug_info += f"\n\nError:\n{e}"
         filtered_df = pd.DataFrame()
 
-    # Default table data
+    # Prepare data for graph and table
     data, columns = [], []
 
     if not filtered_df.empty and 'order date' in filtered_df.columns and 'sales' in filtered_df.columns:
